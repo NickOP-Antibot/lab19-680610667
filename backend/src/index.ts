@@ -24,11 +24,15 @@ const port = process.env.PORT || 3000;
 
 // CORS middleware: อนุญาตให้ Frontend (Vite dev server คนละ origin) เรียก API ได้
 // ตั้งค่า origin ได้หลายค่าคั่นด้วย "," ผ่าน CORS_ORIGIN ใน .env
-app.use(
-  cors({
-    origin: (process.env.CORS_ORIGIN || "http://localhost:5173").split(","),
-  }),
-);
+// app.use(
+//   cors({
+//     origin: (process.env.CORS_ORIGIN || "http://localhost:5173").split(","),
+//   }),
+// );
+app.use(cors({
+    origin: 'https://lab19-frontend-2569-680610667.vercel.app',
+    credentials: true
+}));
 
 // body parser middleware
 app.use(express.json());
