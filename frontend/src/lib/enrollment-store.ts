@@ -111,33 +111,29 @@ export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
       emails: (student.emails || []).map((e: { address: string }) => e.address),
     };
 
-    const response: any = await api("/students", {
-      method: "POST",
-      body: payload,
-    });
-    const newStudent = response.data;
+    const response: any = await api('/students', { method: 'POST', body: payload });
+    
+    const newStudent = response.data ? response.data : response;
 
     set((state) => ({
       students: [...state.students, fromApiStudent(newStudent)],
     }));
   },
 
-  //แก้ไขข้อมูลนักศึกษา
+  //update ข้อมูลนักศึกษา
   updateStudent: async (student) => {
     const payload = {
       ...student,
       emails: (student.emails || []).map((e: { address: string }) => e.address),
     };
 
-    const response: any = await api("/students", {
-      method: "PUT",
-      body: payload,
-    });
-    const updatedStudent = response.data;
+    const response: any = await api('/students', { method: 'PUT', body: payload });
+    
+    const updatedStudent = response.data ? response.data : response; 
 
     set((state) => ({
       students: state.students.map((s) =>
-        s.studentId === student.studentId ? fromApiStudent(updatedStudent) : s,
+        s.studentId === student.studentId ? fromApiStudent(updatedStudent) : s
       ),
     }));
   },

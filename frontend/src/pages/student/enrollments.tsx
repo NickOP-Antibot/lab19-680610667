@@ -29,11 +29,18 @@ import {
 } from "@/components/ui/table";
 import { useAuthStore } from "@/lib/auth-store";
 import { useEnrollmentStore } from "@/lib/enrollment-store";
-import ConfirmButton from "@/components/confirm-button";
+import { ConfirmDeleteButton } from "@/components/confirm-button";
 
 export default function StudentEnrollmentsPage() {
   const studentId = useAuthStore((s) => s.studentId);
-  const { students, courses, enrollments, enroll, updateEnrollment, dropEnrollment } = useEnrollmentStore();
+  const {
+    students,
+    courses,
+    enrollments,
+    enroll,
+    updateEnrollment,
+    dropEnrollment,
+  } = useEnrollmentStore();
 
   const [open, setOpen] = useState(false);
   const [formCourse, setFormCourse] = useState<string | null>(null);
@@ -45,7 +52,7 @@ export default function StudentEnrollmentsPage() {
   const [newCourseId, setNewCourseId] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
-  
+
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const me = students.find((s) => s.studentId === studentId);
@@ -133,7 +140,7 @@ export default function StudentEnrollmentsPage() {
 
         <Dialog open={open} onOpenChange={handleOpenChange}>
           <DialogTrigger>
-             <Button disabled={!studentId}>
+            <Button disabled={!studentId}>
               <PlusCircle className="mr-2 h-4 w-4" />
               ลงทะเบียนเรียน
             </Button>
@@ -237,16 +244,13 @@ export default function StudentEnrollmentsPage() {
                       >
                         <ArrowRightLeft className="h-4 w-4 text-muted-foreground hover:text-primary" />
                       </Button>
-                      
-                      <ConfirmButton
-                        variant="ghost"
-                        size="icon"
+
+                      <ConfirmDeleteButton
+                        label={`ลบวิชา ${e.courseId}`}
                         title={`ยกเลิกการลงทะเบียน ${e.courseId}?`}
                         description={`คุณต้องการยกเลิกการลงทะเบียนวิชา ${course?.courseTitle || e.courseId} ใช่หรือไม่?`}
                         onConfirm={() => handleDropEnrollment(e.courseId)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </ConfirmButton>
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -261,7 +265,8 @@ export default function StudentEnrollmentsPage() {
           <DialogHeader>
             <DialogTitle>เปลี่ยนวิชา {oldCourseId}</DialogTitle>
             <DialogDescription>
-              เลือกวิชาใหม่แทนวิชา {oldCourseId} (เลือกได้เฉพาะวิชาที่ยังไม่ได้ลงทะเบียน)
+              เลือกวิชาใหม่แทนวิชา {oldCourseId}{" "}
+              (เลือกได้เฉพาะวิชาที่ยังไม่ได้ลงทะเบียน)
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-1.5">
@@ -288,11 +293,11 @@ export default function StudentEnrollmentsPage() {
               </SelectContent>
             </Select>
           </div>
-          
+
           {updateError && (
             <p className="text-sm text-destructive">{updateError}</p>
           )}
-          
+
           <DialogFooter>
             <Button
               disabled={!newCourseId || updating}
