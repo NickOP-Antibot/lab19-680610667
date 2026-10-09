@@ -15,8 +15,7 @@ export default function HomePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Lecture 18: เชื่อม Frontend (React) กับ Backend API (Express +
-            Prisma + MongoDB)
+            Lab 19 :D
           </p>
           {role === "ADMIN" ? (
             <div className="flex flex-wrap gap-2">
