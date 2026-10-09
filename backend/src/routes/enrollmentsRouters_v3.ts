@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { zEnrollmentBody } from "../libs/zodValidators.ts";
+import { zEnrollmentBody, zEnrollmentPutBody } from "../libs/zodValidators.ts";
 
 import type { CustomRequest } from "../libs/types.ts";
 
@@ -122,10 +122,110 @@ router.post(
 //   - ADMIN แก้ได้ทุกคน / STUDENT แก้ได้แค่ของตัวเอง (403)
 //   - validate body (400), ยังไม่ได้ลงวิชาเดิม (404), วิชาใหม่ = วิชาเดิม (400),
 //     วิชาใหม่ไม่มีจริง (404), ลงวิชาใหม่ไว้แล้ว (409)
+router.put(
+  "/",
+  authenticateToken,
+  checkRoles, 
+  async (req: CustomRequest, res: Response) => {
+    try {
+      const user = req.user;
+      
+      const parseResult = zEnrollmentPutBody.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ success: false, message: "Bad Request" });
+      }
+
+      const { studentId, courseId, newCourseId } = parseResult.data;
+
+      if (user?.role === "STUDENT" && user.studentId !== studentId) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+
+      if (courseId === newCourseId) {
+        return res.status(400).json({ success: false, message: "วิชาใหม่ต้องไม่ซ้ำกับวิชาเดิม" });
+      }
+
+      const newCourseExists = await prisma.course.findUnique({
+        where: { courseId: newCourseId }
+      });
+      if (!newCourseExists) {
+        return res.status(404).json({ success: false, message: "ไม่พบวิชาใหม่ในระบบ" });
+      }
+
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: { studentId, courseId }
+      });
+      if (!existingEnrollment) {
+        return res.status(404).json({ success: false, message: "ยังไม่ได้ลงวิชาเดิม" });
+      }
+
+      const alreadyEnrolledNew = await prisma.enrollment.findFirst({
+        where: { studentId, courseId: newCourseId }
+      });
+      if (alreadyEnrolledNew) {
+        return res.status(409).json({ success: false, message: "ลงทะเบียนวิชาใหม่ไว้แล้ว" });
+      }
+
+      await prisma.enrollment.updateMany({
+        where: { studentId, courseId },
+        data: { courseId: newCourseId }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "เปลี่ยนวิชาเรียนสำเร็จ"
+      });
+
+    } catch (error) {
+      console.error("Error updating enrollment:", error);
+      return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  }
+);
 
 // TODO การบ้าน 2.2: DELETE /api/v3/enrollments, body = {studentId, courseId}
 //   ยกเลิกการลงทะเบียน (drop)
 //   - ADMIN ลบได้ทุกคน / STUDENT ลบได้แค่ของตัวเอง (403)
 //   - validate body (400), ไม่พบการลงทะเบียน (404)
+router.delete(
+  "/",
+  authenticateToken,
+  checkRoles, 
+  async (req: CustomRequest, res: Response) => {
+    try {
+      const user = req.user;
+      const { studentId, courseId } = req.body;
+
+      if (!studentId || !courseId) {
+        return res.status(400).json({ success: false, message: "Bad Request" });
+      }
+
+      if (user?.role === "STUDENT" && user.studentId !== studentId) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: { studentId, courseId }
+      });
+
+      if (!existingEnrollment) {
+        return res.status(404).json({ success: false, message: "ไม่พบการลงทะเบียน" });
+      }
+
+      await prisma.enrollment.deleteMany({
+        where: { studentId, courseId }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "ยกเลิกการลงทะเบียนสำเร็จ"
+      });
+
+    } catch (error) {
+      console.error("Error deleting enrollment:", error);
+      return res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  }
+);
 
 export default router;

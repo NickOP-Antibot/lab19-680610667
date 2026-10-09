@@ -1,5 +1,9 @@
 import { Router, type Request, type Response } from "express";
-import { zStudentPostBody, zStudentId } from "../libs/zodValidators.js";
+import {
+  zStudentPostBody,
+  zStudentId,
+  zStudentPutBody,
+} from "../libs/zodValidators.js";
 
 import type { Student, CustomRequest } from "../libs/types.js";
 
@@ -179,6 +183,105 @@ router.post(
         message: "Somthing is wrong, please try again",
         error: err,
       });
+    }
+  },
+);
+
+//แก้ไขข้อมูลนักศึกษา (PUT)
+router.put(
+  "/",
+  authenticateToken,
+  checkRoles,
+  async (req: CustomRequest, res: Response) => {
+    try {
+      const user = req.user;
+
+      const parseResult = zStudentPutBody.safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ success: false, message: "Bad Request" });
+      }
+
+      const { studentId, firstName, lastName, program, interests, emails } =
+        parseResult.data;
+
+      if (user?.role === "STUDENT" && user.studentId !== studentId) {
+        return res.status(403).json({ success: false, message: "Forbidden" });
+      }
+
+      const existingStudent = await prisma.student.findUnique({
+        where: { studentId },
+      });
+
+      if (!existingStudent) {
+        return res.status(404).json({ success: false, message: "Not Found" });
+      }
+
+      const updateData: any = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (program !== undefined) updateData.program = program;
+      if (interests !== undefined) updateData.interests = interests;
+      if (emails !== undefined) updateData.emails = emails;
+
+      const updatedStudent = await prisma.student.update({
+        where: { studentId },
+        data: updateData,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "อัปเดตข้อมูลนักศึกษาสำเร็จ",
+        data: updatedStudent,
+      });
+    } catch (error) {
+      console.error("Error updating student:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
+    }
+  },
+);
+
+//ลบนักศึกษา (DELETE)
+router.delete(
+  "/",
+  authenticateToken,
+  checkRoleAdmin,
+  async (req: CustomRequest, res: Response) => {
+    try {
+      const { studentId } = req.body;
+
+      if (!studentId) {
+        return res.status(400).json({ success: false, message: "Bad Request" });
+      }
+
+      const existingStudent = await prisma.student.findUnique({
+        where: { studentId },
+      });
+
+      if (!existingStudent) {
+        return res.status(404).json({ success: false, message: "Not Found" });
+      }
+
+      await prisma.$transaction([
+        prisma.enrollment.deleteMany({
+          where: { studentId },
+        }),
+        prisma.student.delete({
+          where: { studentId },
+        }),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        message: "ลบข้อมูลนักศึกษาและการลงทะเบียนเรียนสำเร็จ",
+        data: existingStudent,
+      });
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
     }
   },
 );

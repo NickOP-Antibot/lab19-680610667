@@ -97,3 +97,9 @@ export const zUserBody = z.object({
     message: "Role must be either STUDENT or ADMIN",
   }),
 });
+
+export const zEnrollmentPutBody = z.object({
+  studentId: z.string().min(1),
+  courseId: z.string().min(1),
+  newCourseId: z.string().min(1)
+});

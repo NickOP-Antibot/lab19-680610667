@@ -52,6 +52,15 @@ type EnrollmentStore = {
   /** POST /enrollments — throw ApiError ถ้า Backend ไม่รับ */
   enroll: (studentId: string, courseId: string) => Promise<void>;
   // TODO การบ้าน 2.3: action เปลี่ยนวิชา (PUT /enrollments) และยกเลิก (DELETE /enrollments)
+
+  /** PUT /enrollments - เปลี่ยนวิชาเรียนของนักศึกษา (STUDENT) */
+  updateEnrollment: (
+    studentId: string,
+    courseId: string,
+    newCourseId: string,
+  ) => Promise<void>;
+  /** DELETE /enrollments - ยกเลิกการลงทะเบียนของนักศึกษา (STUDENT) */
+  dropEnrollment: (studentId: string, courseId: string) => Promise<void>;
 };
 
 export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
@@ -95,16 +104,52 @@ export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
       error: null,
     }),
 
-  addStudent: async () => {
-    throw new Error("TODO การบ้าน 1.3: ยังไม่ได้เชื่อม POST /students");
+  //เพิ่มข้อมูลนักศึกษา
+  addStudent: async (student) => {
+    const payload = {
+      ...student,
+      emails: (student.emails || []).map((e: { address: string }) => e.address),
+    };
+
+    const response: any = await api("/students", {
+      method: "POST",
+      body: payload,
+    });
+    const newStudent = response.data;
+
+    set((state) => ({
+      students: [...state.students, fromApiStudent(newStudent)],
+    }));
   },
 
-  updateStudent: async () => {
-    throw new Error("TODO การบ้าน 1.3: ยังไม่ได้เชื่อม PUT /students");
+  //แก้ไขข้อมูลนักศึกษา
+  updateStudent: async (student) => {
+    const payload = {
+      ...student,
+      emails: (student.emails || []).map((e: { address: string }) => e.address),
+    };
+
+    const response: any = await api("/students", {
+      method: "PUT",
+      body: payload,
+    });
+    const updatedStudent = response.data;
+
+    set((state) => ({
+      students: state.students.map((s) =>
+        s.studentId === student.studentId ? fromApiStudent(updatedStudent) : s,
+      ),
+    }));
   },
 
-  removeStudent: async () => {
-    throw new Error("TODO การบ้าน 1.3: ยังไม่ได้เชื่อม DELETE /students");
+  //ลบข้อมูลนักศึกษา
+  removeStudent: async (studentId) => {
+    await api("/students", { method: "DELETE", body: { studentId } });
+
+    set((state) => ({
+      students: state.students.filter((s) => s.studentId !== studentId),
+      enrollments: state.enrollments.filter((e) => e.studentId !== studentId),
+    }));
   },
 
   addCourse: async (course) => {
@@ -145,6 +190,38 @@ export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
     });
     set((state) => ({
       enrollments: [...state.enrollments, fromApiEnrollment(created)],
+    }));
+  },
+
+  //เปลี่ยนวิชาเรียน ของ Role STUDENT
+  updateEnrollment: async (
+    studentId: string,
+    courseId: string,
+    newCourseId: string,
+  ) => {
+    const payload = { studentId, courseId, newCourseId };
+
+    await api("/enrollments", { method: "PUT", body: payload });
+
+    set((state) => ({
+      enrollments: state.enrollments.map((e) =>
+        e.studentId === studentId && e.courseId === courseId
+          ? { ...e, courseId: newCourseId }
+          : e,
+      ),
+    }));
+  },
+
+  //ยกเลิกการลงทะเบียน (Drop) ของ Role STUDENT
+  dropEnrollment: async (studentId: string, courseId: string) => {
+    const payload = { studentId, courseId };
+
+    await api("/enrollments", { method: "DELETE", body: payload });
+
+    set((state) => ({
+      enrollments: state.enrollments.filter(
+        (e) => !(e.studentId === studentId && e.courseId === courseId),
+      ),
     }));
   },
 }));
