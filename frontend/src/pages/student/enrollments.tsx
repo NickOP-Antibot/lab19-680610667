@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PlusCircle, ArrowRightLeft, Trash2 } from "lucide-react";
+import { PlusCircle, ArrowRightLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
