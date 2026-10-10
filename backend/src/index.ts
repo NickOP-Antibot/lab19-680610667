@@ -46,7 +46,7 @@ app.use(invalidJsonMiddleware);
 
 // Endpoints
 app.get("/", (req: Request, res: Response) => {
-  res.send("Lecture10 API services");
+  res.send("Lab19 API services");
 });
 
 app.get("/me", (req: Request, res: Response) => {
@@ -54,9 +54,9 @@ app.get("/me", (req: Request, res: Response) => {
     success: true,
     message: "Student Information",
     data: {
-      studentId: "600610999",
-      firstName: "Dome",
-      lastName: "Potikanond",
+      studentId: "600610667",
+      firstName: "Chitsanupat",
+      lastName: "Amornpiyapong",
       program: "CPE",
       section: "001",
     },
